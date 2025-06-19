@@ -416,66 +416,6 @@ def editar_valor(valor_id):
         'observacao': valor.observacao or ''
     })
 
-class Indicador(db.Model):
-    __tablename__ = 'indicadores'
-    __table_args__ = {'extend_existing': True}  # Adicionar esta linha
-    
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    descricao = db.Column(db.Text)
-    tipo = db.Column(db.String(20), nullable=False)
-    unidade = db.Column(db.String(20))
-    meta = db.Column(db.Float)
-    meta_tipo = db.Column(db.String(20))
-    meta_periodicidade = db.Column(db.String(20), default='anual')
-    cor = db.Column(db.String(7), default='#007bff')
-    icone = db.Column(db.String(50), default='fas fa-chart-line')
-    ativo = db.Column(db.Boolean, default=True)
-    ordem = db.Column(db.Integer, default=0)
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Novos campos para gráficos e periodicidade
-    periodicidade = db.Column(db.String(20), default='mensal')
-    graficos_habilitados = db.Column(db.Text)
-    
-    # Relacionamentos
-    setor_id = db.Column(db.Integer, db.ForeignKey('setores.id'), nullable=False)
-    valores = db.relationship('ValorIndicador', backref='indicador', lazy='dynamic', cascade='all, delete-orphan')
-    graficos = db.relationship('GraficoIndicador', backref='indicador', lazy='dynamic', cascade='all, delete-orphan')
-    
-    def get_meta_periodo(self):
-        """Calcular meta baseada na periodicidade"""
-        if not self.meta:
-            return None
-            
-        if self.meta_periodicidade == 'anual':
-            return self.meta
-        
-        divisores = {
-            'mensal': 12,
-            'bimestral': 6,
-            'trimestral': 4,
-            'quadrimestral': 3,
-            'semestral': 2,
-            'anual': 1
-        }
-        
-        divisor = divisores.get(self.periodicidade, 12)
-        return self.meta / divisor
-    
-    def get_graficos_config(self):
-        """Obter configuração dos gráficos"""
-        if self.graficos_habilitados:
-            import json
-            return json.loads(self.graficos_habilitados)
-        return {}
-    
-    def set_graficos_config(self, config):
-        """Definir configuração dos gráficos"""
-        import json
-        self.graficos_habilitados = json.dumps(config)
-
-
 @indicadores_bp.route('/<int:indicador_id>/dados-graficos')
 @login_required
 def dados_graficos(indicador_id):
