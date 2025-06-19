@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Construtor de Dashboard - {{ setor.nome }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-tools"></i> Construtor de Dashboard
+        <small class="text-muted">- {{ setor.nome }}</small>
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-success me-2" onclick="salvarDashboard()">
+            <i class="fas fa-save"></i> Salvar Dashboard
+        </button>
+        <button type="button" class="btn btn-info me-2" onclick="previewDashboard()">
+            <i class="fas fa-eye"></i> Preview
+        </button>
+        <a href="{{ url_for('dashboard.setor', setor_id=setor.id) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Painel de Componentes -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-puzzle-piece"></i> Componentes</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Indicadores Disponíveis</h6>
+                    <div id="listaIndicadores">
+                        {% for indicador in indicadores %}
+                        <div class="widget-item mb-2 p-2 border rounded" 
+                             draggable="true" 
+                             data-tipo="kpi" 
+                             data-indicador-id="{{ indicador.id }}"
+                             data-nome="{{ indicador.nome }}"
+                             data-cor="{{ indicador.cor }}"
+                             data-icone="{{ indicador.icone }}">
+                            <i class="{{ indicador.icone }}" style="color: {{ indicador.cor }}"></i>
+                            <small>{{ indicador.nome }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Widgets</h6>
+                    <div class="widget-item mb-2 p-2 border rounded" 
+                         draggable="true" 
+                         data-tipo="grafico-linha">
+                        <i class="fas fa-chart-line"></i> Gráfico de Linha
+                    </div>
+                    <div class="widget-item mb-2 p-2 border rounded" 
+                         draggable="true" 
+                         data-tipo="grafico-barra">
+                        <i class="fas fa-chart-bar"></i> Gráfico de Barras
+                    </div>
+                    <div class="widget-item mb-2 p-2 border rounded" 
+                         draggable="true" 
+                         data-tipo="tabela">
+                        <i class="fas fa-table"></i> Tabela
+                    </div>
+                    <div class="widget-item mb-2 p-2 border rounded" 
+                         draggable="true" 
+                         data-tipo="texto">
+                        <i class="fas fa-font"></i> Texto
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Área de Construção -->
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-desktop"></i> Dashboard</h6>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="limparDashboard()">
+                        <i class="fas fa-trash"></i> Limpar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="areaConstrucao" class="dashboard-builder min-vh-100 border-2 border-dashed p-3">
+                    <div class="text-center text-muted mt-5">
+                        <i class="fas fa-mouse-pointer fa-3x mb-3"></i>
+                        <p>Arraste os componentes aqui para construir seu dashboard</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Configuração de Widget -->
+<div class="modal fade" id="modalConfigWidget" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog"></i> Configurar Widget
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="configWidget">
+                    <!-- Conteúdo dinâmico baseado no tipo de widget -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarConfigWidget()">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+// Inicializar construtor de dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    initDashboardBuilder();
+    
+    {% if dashboard %}
+    // Carregar configuração existente
+    const config = {{ dashboard.get_configuracao() | tojson }};
+    carregarDashboard(config);
+    {% endif %}
+});
+
+function salvarDashboard() {
+    const config = obterConfiguracaoDashboard();
+    
+    fetch(`/api/dashboard/{{ setor.id }}/salvar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Dashboard salvo com sucesso!');
+        } else {
+            alert('Erro ao salvar dashboard: ' + data.error);
+        }
+    });
+}
+
+function previewDashboard() {
+    window.open(`{{ url_for('dashboard.setor', setor_id=setor.id) }}`, '_blank');
+}
+
+function limparDashboard() {
+    if (confirm('Tem certeza que deseja limpar o dashboard?')) {
+        document.getElementById('areaConstrucao').innerHTML = `
+            <div class="text-center text-muted mt-5">
+                <i class="fas fa-mouse-pointer fa-3x mb-3"></i>
+                <p>Arraste os componentes aqui para construir seu dashboard</p>
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}

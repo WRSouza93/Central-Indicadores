@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Indicadores{% if setor %} - {{ setor.nome }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-chart-line"></i> Indicadores
+        {% if setor %}
+            <small class="text-muted">- {{ setor.nome }}</small>
+        {% endif %}
+    </h1>
+    {% if setor and (current_user.admin or (current_user.get_setores() and setor in current_user.get_setores())) %}
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('indicadores.criar', setor_id=setor.id) }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Novo Indicador
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="filtroStatus" class="form-label">Status</label>
+                <select class="form-select" id="filtroStatus" onchange="filtrarIndicadores()">
+                    <option value="">Todos</option>
+                    <option value="positivo">Positivo</option>
+                    <option value="negativo">Negativo</option>
+                    <option value="neutro">Neutro</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="filtroTipo" class="form-label">Tipo</label>
+                <select class="form-select" id="filtroTipo" onchange="filtrarIndicadores()">
+                    <option value="">Todos</option>
+                    <option value="numero">Número</option>
+                    <option value="percentual">Percentual</option>
+                    <option value="moeda">Moeda</option>
+                    <option value="tempo">Tempo</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="busca" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="busca" placeholder="Nome do indicador..." onkeyup="filtrarIndicadores()">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid de Indicadores -->
+{% if indicadores %}
+<div class="row" id="gridIndicadores">
+    {% for indicador in indicadores %}
+    <div class="col-xl-3 col-lg-4 col-md-6 mb-4 indicador-card" 
+         data-status="{{ indicador.calcular_status() }}"
+         data-tipo="{{ indicador.tipo }}"
+         data-nome="{{ indicador.nome.lower() }}">
+        <div class="card h-100 dashboard-widget">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="card-title text-truncate" title="{{ indicador.nome }}">
+                        <i class="{{ indicador.icone }}" style="color: {{ indicador.cor }}"></i>
+                        {{ indicador.nome }}
+                    </h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('indicadores.historico', indicador_id=indicador.id) }}">
+                                <i class="fas fa-history"></i> Histórico
+                            </a></li>
+                            {% if current_user.admin or (current_user.get_setores() and indicador.setor in current_user.get_setores()) %}
+                            <li><a class="dropdown-item" href="{{ url_for('indicadores.editar', indicador_id=indicador.id) }}">
+                                <i class="fas fa-edit"></i> Editar
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="adicionarValor({{ indicador.id }})">
+                                <i class="fas fa-plus-circle"></i> Adicionar Valor
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="excluirIndicador({{ indicador.id }})">
+                                <i class="fas fa-trash"></i> Excluir
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                
+                {% set valor_atual = indicador.get_valor_atual() %}
+                {% set status = indicador.calcular_status() %}
+                
+                <div class="kpi-value text-center" style="color: {{ indicador.cor }}">
+                    {{ formatar_valor(valor_atual.valor if valor_atual else None, indicador.tipo, indicador.unidade) }}
+                </div>
+                
+                <div class="text-center">
+                    <span class="kpi-status status-{{ status }}">
+                        {% if status == 'positivo' %}
+                            <i class="fas fa-check-circle"></i> OK
+                        {% elif status == 'negativo' %}
+                            <i class="fas fa-exclamation-triangle"></i> Alerta
+                        {% else %}
+                            <i class="fas fa-minus-circle"></i> Neutro
+                        {% endif %}
+                    </span>
+                </div>
+                
+                {% if indicador.meta %}
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        Meta: {{ formatar_valor(indicador.meta, indicador.tipo, indicador.unidade) }}
+                    </small>
+                </div>
+                {% endif %}
+                
+                {% if setor %}
+                <div class="text-center mt-2">
+                    <small class="text-muted">{{ setor.nome }}</small>
+                </div>
+                {% else %}
+                <div class="text-center mt-2">
+                    <small class="text-muted">{{ indicador.setor.nome }}</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Nenhum indicador encontrado</h5>
+        {% if setor %}
+        <p class="text-muted">Este setor ainda não possui indicadores cadastrados.</p>
+        {% if current_user.admin or (current_user.get_setores() and setor in current_user.get_setores()) %}
+        <a href="{{ url_for('indicadores.criar', setor_id=setor.id) }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Criar Primeiro Indicador
+        </a>
+        {% endif %}
+        {% else %}
+        <p class="text-muted">Nenhum indicador foi encontrado nos setores disponíveis.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal para Adicionar Valor -->
+<div class="modal fade" id="modalValor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle"></i> Adicionar Valor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formValor">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="valorIndicador" class="form-label">Valor *</label>
+                        <input type="text" class="form-control" id="valorIndicador" name="valor" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dataValor" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="dataValor" name="data">
+                    </div>
+                    <div class="mb-3">
+                        <label for="observacaoValor" class="form-label">Observação</label>
+                        <textarea class="form-control" id="observacaoValor" name="observacao" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let indicadorAtual = null;
+
+function filtrarIndicadores() {
+    const filtroStatus = document.getElementById('filtroStatus').value;
+    const filtroTipo = document.getElementById('filtroTipo').value;
+    const busca = document.getElementById('busca').value.toLowerCase();
+    
+    const cards = document.querySelectorAll('.indicador-card');
+    
+    cards.forEach(card => {
+        const status = card.dataset.status;
+        const tipo = card.dataset.tipo;
+        const nome = card.dataset.nome;
+        
+        const mostrarStatus = !filtroStatus || status === filtroStatus;
+        const mostrarTipo = !filtroTipo || tipo === filtroTipo;
+        const mostrarBusca = !busca || nome.includes(busca);
+        
+        if (mostrarStatus && mostrarTipo && mostrarBusca) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function adicionarValor(id) {
+    indicadorAtual = id;
+    document.getElementById('dataValor').value = new Date().toISOString().split('T')[0];
+    new bootstrap.Modal(document.getElementById('modalValor')).show();
+}
+
+function excluirIndicador(id) {
+    if (confirm('Tem certeza que deseja excluir este indicador?')) {
+        fetch(`/indicadores/excluir/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao excluir indicador: ' + data.error);
+            }
+        });
+    }
+}
+
+// Submissão do formulário de valor
+document.getElementById('formValor').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(`/indicadores/valor/${indicadorAtual}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('modalValor')).hide();
+            location.reload();
+        } else {
+            alert('Erro ao salvar valor: ' + data.error);
+        }
+    });
+});
+</script>
+{% endblock %}

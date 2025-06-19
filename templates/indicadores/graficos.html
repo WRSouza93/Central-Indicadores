@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Gráficos - {{ indicador.nome }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="{{ indicador.icone }}" style="color: {{ indicador.cor }}"></i> 
+        Gráficos - {{ indicador.nome }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('indicadores.historico', indicador_id=indicador.id) }}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-history"></i> Histórico
+        </a>
+        <a href="{{ url_for('dashboard.setor', setor_id=indicador.setor_id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Controles de Visualização -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">
+            <i class="fas fa-sliders-h"></i> Controles de Visualização
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="tipoVisualizacao" class="form-label">Tipo de Visualização</label>
+                <select class="form-select" id="tipoVisualizacao" onchange="atualizarGraficos()">
+                    <option value="detalhado">Detalhado (por período)</option>
+                    <option value="acumulado">Acumulado (soma progressiva)</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="tipoComparacao" class="form-label">Tipo de Comparação</label>
+                <select class="form-select" id="tipoComparacao" onchange="atualizarGraficos()">
+                    <option value="meta">Comparar com Meta</option>
+                    <option value="yoy">Análise YoY%</option>
+                    <option value="mom">Análise MoM%</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="anoComparacao" class="form-label">Ano de Comparação</label>
+                <select class="form-select" id="anoComparacao" onchange="atualizarGraficos()">
+                    <option value="atual">{{ ano_atual }}</option>
+                    <option value="anterior">{{ ano_atual - 1 }}</option>
+                    <option value="ambos">Ambos os Anos</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="periodoFiltro" class="form-label">Período</label>
+                <select class="form-select" id="periodoFiltro" onchange="atualizarGraficos()">
+                    <option value="12">Últimos 12 meses</option>
+                    <option value="6">Últimos 6 meses</option>
+                    <option value="3">Últimos 3 meses</option>
+                    <option value="ytd">Ano até agora</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos Habilitados -->
+{% set graficos_config = indicador.get_graficos_config() %}
+
+{% if graficos_config.get('linha', {}).get('habilitado') %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-line"></i> Gráfico de Linha
+        </h6>
+    </div>
+    <div class="card-body">
+        <canvas id="graficoLinha" height="100"></canvas>
+    </div>
+</div>
+{% endif %}
+
+{% if graficos_config.get('coluna', {}).get('habilitado') %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-bar"></i> Gráfico de Coluna
+        </h6>
+    </div>
+    <div class="card-body">
+        <canvas id="graficoColuna" height="100"></canvas>
+    </div>
+</div>
+{% endif %}
+
+{% if graficos_config.get('barra', {}).get('habilitado') %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-bar fa-rotate-90"></i> Gráfico de Barra
+        </h6>
+    </div>
+    <div class="card-body">
+        <canvas id="graficoBarra" height="100"></canvas>
+    </div>
+</div>
+{% endif %}
+
+{% if graficos_config.get('rosca', {}).get('habilitado') %}
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-pie"></i> Gráfico de Rosca
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <canvas id="graficoRosca" height="100"></canvas>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6>Resumo</h6>
+                        <div id="resumoRosca"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Cards de Performance -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-percentage"></i> Performance do Último Período
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="h2 mb-0" id="performanceUltimoPeriodo">--</div>
+                <small class="text-muted">% da meta atingida</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-line"></i> Performance Acumulada
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="h2 mb-0" id="performanceAcumulada">--</div>
+                <small class="text-muted">% da meta acumulada</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Variáveis globais
+let graficos = {};
+const indicadorId = {{ indicador.id }};
+const graficosConfig = {{ graficos_config|tojson }};
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarGraficos();
+});
+
+// Função principal para atualizar gráficos
+function atualizarGraficos() {
+    const tipoVisualizacao = document.getElementById('tipoVisualizacao').value;
+    const tipoComparacao = document.getElementById('tipoComparacao').value;
+    const anoComparacao = document.getElementById('anoComparacao').value;
+    const periodoFiltro = document.getElementById('periodoFiltro').value;
+    
+    // Buscar dados do servidor
+    fetch(`/indicadores/${indicadorId}/dados-graficos?` + new URLSearchParams({
+        tipo_visualizacao: tipoVisualizacao,
+        tipo_comparacao: tipoComparacao,
+        ano_comparacao: anoComparacao,
+        periodo_filtro: periodoFiltro
+    }))
+    .then(response => response.json())
+    .then(dados => {
+        // Atualizar cada tipo de gráfico habilitado
+        if (graficosConfig.linha?.habilitado) {
+            criarGraficoLinha(dados);
+        }
+        if (graficosConfig.coluna?.habilitado) {
+            criarGraficoColuna(dados);
+        }
+        if (graficosConfig.barra?.habilitado) {
+            criarGraficoBarra(dados);
+        }
+        if (graficosConfig.rosca?.habilitado) {
+            criarGraficoRosca(dados);
+        }
+        
+        // Atualizar cards de performance
+        atualizarCardsPerformance(dados);
+    })
+    .catch(error => {
+        console.error('Erro ao carregar dados dos gráficos:', error);
+    });
+}
+
+// Implementação dos gráficos específicos
+function criarGraficoLinha(dados) {
+    const ctx = document.getElementById('graficoLinha').getContext('2d');
+    
+    if (graficos.linha) {
+        graficos.linha.destroy();
+    }
+    
+    graficos.linha = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dados.labels,
+            datasets: dados.datasets.linha
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    });
+}
+
+function criarGraficoColuna(dados) {
+    const ctx = document.getElementById('graficoColuna').getContext('2d');
+    
+    if (graficos.coluna) {
+        graficos.coluna.destroy();
+    }
+    
+    graficos.coluna = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dados.labels,
+            datasets: dados.datasets.coluna
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function criarGraficoBarra(dados) {
+    const ctx = document.getElementById('graficoBarra').getContext('2d');
+    
+    if (graficos.barra) {
+        graficos.barra.destroy();
+    }
+    
+    graficos.barra = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dados.labels,
+            datasets: dados.datasets.barra
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function criarGraficoRosca(dados) {
+    const ctx = document.getElementById('graficoRosca').getContext('2d');
+    
+    if (graficos.rosca) {
+        graficos.rosca.destroy();
+    }
+    
+    graficos.rosca = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: dados.labels,
+            datasets: dados.datasets.rosca
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Atualizar resumo da rosca
+    const resumoDiv = document.getElementById('resumoRosca');
+    resumoDiv.innerHTML = dados.resumo_rosca || '';
+}
+
+function atualizarCardsPerformance(dados) {
+    document.getElementById('performanceUltimoPeriodo').textContent = dados.performance_ultimo_periodo + '%';
+    document.getElementById('performanceAcumulada').textContent = dados.performance_acumulada + '%';
+}
+</script>
+{% endblock %}

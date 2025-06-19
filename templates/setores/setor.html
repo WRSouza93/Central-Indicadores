@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if setor %}Editar Setor{% else %}Novo Setor{% endif %} - Central de Indicadores
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-building"></i> 
+        {% if setor %}Editar Setor{% else %}Novo Setor{% endif %}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('setores.listar_setores') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar para Lista
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-{{ 'edit' if setor else 'plus' }}"></i>
+                    {% if setor %}Editar Informações do Setor{% else %}Cadastrar Novo Setor{% endif %}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('setores.editar_setor', setor_id=setor.id) if setor else url_for('setores.criar_setor') }}">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="nome" class="form-label">
+                                <i class="fas fa-building me-2"></i>Nome do Setor *
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="nome" 
+                                   name="nome" 
+                                   value="{{ setor.nome if setor else '' }}"
+                                   placeholder="Ex: Financeiro, Vendas, RH..."
+                                   required>
+                            <div class="invalid-feedback">
+                                Nome do setor é obrigatório.
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="cor" class="form-label">
+                                <i class="fas fa-palette me-2"></i>Cor do Setor
+                            </label>
+                            <div class="input-group">
+                                <input type="color" 
+                                       class="form-control form-control-color form-control-lg" 
+                                       id="cor" 
+                                       name="cor" 
+                                       value="{{ setor.cor if setor else '#007bff' }}"
+                                       title="Escolha a cor do setor">
+                                <span class="input-group-text" id="preview-cor">
+                                    <i class="fas fa-circle" style="color: {{ setor.cor if setor else '#007bff' }}"></i>
+                                </span>
+                            </div>
+                            <small class="text-muted">Cor usada nos gráficos e identificação visual</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="descricao" class="form-label">
+                                <i class="fas fa-align-left me-2"></i>Descrição
+                            </label>
+                            <textarea class="form-control" 
+                                      id="descricao" 
+                                      name="descricao" 
+                                      rows="4"
+                                      placeholder="Descreva as responsabilidades e objetivos deste setor...">{{ setor.descricao if setor else '' }}</textarea>
+                            <small class="text-muted">Descrição opcional para identificar o propósito do setor</small>
+                        </div>
+                    </div>
+                    
+                    {% if setor %}
+                    <!-- Informações adicionais para edição -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="ativo" 
+                                       name="ativo" 
+                                       {{ 'checked' if setor.ativo else '' }}>
+                                <label class="form-check-label" for="ativo">
+                                    <strong>Setor Ativo</strong>
+                                    <br><small class="text-muted">Setores inativos não aparecem nos dashboards</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estatísticas do Setor</label>
+                            <div class="border rounded p-3 bg-light">
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 text-primary">{{ setor.indicadores.count() }}</div>
+                                        <small class="text-muted">Indicadores</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 text-success">{{ setor.get_indicadores_ativos()|length }}</div>
+                                        <small class="text-muted">Ativos</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 text-info">{{ setor.usuarios.filter_by(ativo=True).count() }}</div>
+                                        <small class="text-muted">Usuários</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Botões de Ação -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('setores.listar_setores') }}" 
+                                   class="btn btn-secondary btn-lg">
+                                    <i class="fas fa-times me-2"></i>Cancelar
+                                </a>
+                                
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-{{ 'save' if setor else 'plus' }} me-2"></i>
+                                    {% if setor %}Atualizar Setor{% else %}Criar Setor{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Informações Adicionais -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-info-circle text-info me-2"></i>Informações Importantes
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-check text-success me-2"></i>O nome do setor deve ser único no sistema</li>
+                    <li><i class="fas fa-check text-success me-2"></i>A cor escolhida será usada em gráficos e dashboards</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Setores podem ser desativados sem perder dados</li>
+                    {% if not setor %}
+                    <li><i class="fas fa-check text-success me-2"></i>Após criar, você poderá adicionar indicadores ao setor</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        
+        {% if setor %}
+        <!-- Ações Avançadas para Edição -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-cogs text-warning me-2"></i>Ações Avançadas
+                </h6>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('dashboard.setor', setor_id=setor.id) }}" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-tachometer-alt"></i> Ver Dashboard
+                    </a>
+                    <a href="{{ url_for('indicadores.por_setor', setor_id=setor.id) }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-chart-line"></i> Gerenciar Indicadores
+                    </a>
+                    {% if setor.indicadores.count() == 0 and setor.usuarios.count() == 0 %}
+                    <button type="button" 
+                            class="btn btn-outline-danger btn-sm" 
+                            onclick="excluirSetor({{ setor.id }})">
+                        <i class="fas fa-trash"></i> Excluir Setor
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Preview da cor em tempo real
+document.getElementById('cor').addEventListener('change', function() {
+    const cor = this.value;
+    const preview = document.querySelector('#preview-cor i');
+    preview.style.color = cor;
+});
+
+// Validação do formulário
+document.querySelector('form').addEventListener('submit', function(e) {
+    const nome = document.getElementById('nome').value.trim();
+    
+    if (!nome) {
+        e.preventDefault();
+        document.getElementById('nome').classList.add('is-invalid');
+        alert('Nome do setor é obrigatório!');
+        return false;
+    }
+    
+    return true;
+});
+
+// Validação em tempo real
+document.getElementById('nome').addEventListener('blur', function() {
+    if (this.value.trim()) {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+    } else {
+        this.classList.remove('is-valid');
+        this.classList.add('is-invalid');
+    }
+});
+
+{% if setor %}
+// Função para excluir setor
+function excluirSetor(id) {
+    if (confirm('Tem certeza que deseja excluir este setor? Esta ação não pode ser desfeita.')) {
+        fetch(`/setores/setores/${id}/excluir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.href = "{{ url_for('setores.listar_setores') }}";
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao excluir setor');
+        });
+    }
+}
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if indicador %}Editar{% else %}Criar{% endif %} Indicador - {{ setor.nome }}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-chart-line"></i> 
+        {% if indicador %}Editar{% else %}Criar{% endif %} Indicador
+        <small class="text-muted">- {{ setor.nome }}</small>
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('indicadores.por_setor', setor_id=setor.id) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome do Indicador *</label>
+                        <input type="text" class="form-control" id="nome" name="nome" 
+                               value="{{ indicador.nome if indicador else '' }}" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo *</label>
+                        <select class="form-select" id="tipo" name="tipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="numero" {% if indicador and indicador.tipo == 'numero' %}selected{% endif %}>Número</option>
+                            <option value="percentual" {% if indicador and indicador.tipo == 'percentual' %}selected{% endif %}>Percentual</option>
+                            <option value="moeda" {% if indicador and indicador.tipo == 'moeda' %}selected{% endif %}>Moeda</option>
+                            <option value="tempo" {% if indicador and indicador.tipo == 'tempo' %}selected{% endif %}>Tempo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="descricao" class="form-label">Descrição</label>
+                <textarea class="form-control" id="descricao" name="descricao" rows="3">{{ indicador.descricao if indicador else '' }}</textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="unidade" class="form-label">Unidade</label>
+                        <input type="text" class="form-control" id="unidade" name="unidade" 
+                               value="{{ indicador.unidade if indicador else '' }}" placeholder="Ex: %, R$, min">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="meta" class="form-label">Meta</label>
+                        <input type="text" class="form-control" id="meta" name="meta" 
+                               value="{{ indicador.meta if indicador and indicador.meta else '' }}" placeholder="Valor da meta">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="meta_tipo" class="form-label">Tipo de Meta</label>
+                        <select class="form-select" id="meta_tipo" name="meta_tipo">
+                            <option value="maior" {% if indicador and indicador.meta_tipo == 'maior' %}selected{% endif %}>Maior que</option>
+                            <option value="menor" {% if indicador and indicador.meta_tipo == 'menor' %}selected{% endif %}>Menor que</option>
+                            <option value="igual" {% if indicador and indicador.meta_tipo == 'igual' %}selected{% endif %}>Igual a</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="cor" class="form-label">Cor</label>
+                        <input type="color" class="form-control form-control-color" id="cor" name="cor" 
+                               value="{{ indicador.cor if indicador else '#28a745' }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="icone" class="form-label">Ícone (Font Awesome)</label>
+                        <input type="text" class="form-control" id="icone" name="icone" 
+                               value="{{ indicador.icone if indicador else 'fas fa-chart-line' }}" 
+                               placeholder="Ex: fas fa-chart-line">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{{ url_for('indicadores.por_setor', setor_id=setor.id) }}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Adicionar após os campos existentes -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <label for="periodicidade" class="form-label">
+            <i class="fas fa-calendar-alt me-2"></i>Periodicidade de Monitoramento
+        </label>
+        <select class="form-select" id="periodicidade" name="periodicidade" required>
+            <option value="mensal">Mensal</option>
+            <option value="bimestral">Bimestral</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="quadrimestral">Quadrimestral</option>
+            <option value="semestral">Semestral</option>
+            <option value="anual">Anual</option>
+        </select>
+        <small class="text-muted">Define a frequência de acompanhamento do indicador</small>
+    </div>
+    
+    <div class="col-md-6">
+        <label for="meta_periodicidade" class="form-label">
+            <i class="fas fa-bullseye me-2"></i>Tipo de Meta
+        </label>
+        <select class="form-select" id="meta_periodicidade" name="meta_periodicidade">
+            <option value="anual">Meta Anual</option>
+            <option value="periodicidade">Meta por Período</option>
+        </select>
+        <small class="text-muted">Se escolher "por período", a meta será dividida automaticamente</small>
+    </div>
+</div>
+
+<!-- Seção de Configuração de Gráficos -->
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-bar"></i> Configuração de Gráficos
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-12 mb-3">
+                <label class="form-label">Tipos de Gráficos Habilitados</label>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="grafico_linha" name="graficos[]" value="linha">
+                            <label class="form-check-label" for="grafico_linha">
+                                <i class="fas fa-chart-line text-primary"></i> Gráfico de Linha
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="grafico_coluna" name="graficos[]" value="coluna">
+                            <label class="form-check-label" for="grafico_coluna">
+                                <i class="fas fa-chart-bar text-success"></i> Gráfico de Coluna
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="grafico_barra" name="graficos[]" value="barra">
+                            <label class="form-check-label" for="grafico_barra">
+                                <i class="fas fa-chart-bar fa-rotate-90 text-warning"></i> Gráfico de Barra
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="grafico_rosca" name="graficos[]" value="rosca">
+                            <label class="form-check-label" for="grafico_rosca">
+                                <i class="fas fa-chart-pie text-danger"></i> Gráfico de Rosca
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Configurações específicas por tipo de gráfico -->
+        <div id="configuracoes-graficos" style="display: none;">
+            <!-- Configurações para Gráfico de Linha -->
+            <div id="config-linha" class="config-grafico" style="display: none;">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-chart-line"></i> Configurações - Gráfico de Linha</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="linha_comparativo_ano" name="linha_comparativo_ano">
+                        <label class="form-check-label" for="linha_comparativo_ano">
+                            Habilitar comparativo com ano anterior
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configurações para Gráfico de Coluna -->
+            <div id="config-coluna" class="config-grafico" style="display: none;">
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-chart-bar"></i> Configurações - Gráfico de Coluna</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="coluna_total" name="coluna_total">
+                        <label class="form-check-label" for="coluna_total">
+                            Incluir coluna de total (soma dos períodos)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configurações para Gráfico de Barra -->
+            <div id="config-barra" class="config-grafico" style="display: none;">
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-chart-bar fa-rotate-90"></i> Configurações - Gráfico de Barra</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="barra_total" name="barra_total">
+                        <label class="form-check-label" for="barra_total">
+                            Incluir barra de total (soma dos períodos)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configurações para Gráfico de Rosca -->
+            <div id="config-rosca" class="config-grafico" style="display: none;">
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-chart-pie"></i> Configurações - Gráfico de Rosca</h6>
+                    <p class="mb-0">O gráfico de rosca mostrará a distribuição dos valores por período.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

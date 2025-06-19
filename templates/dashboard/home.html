@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Central de Indicadores{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard Principal</h1>
+</div>
+
+<!-- Estatísticas Gerais -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Setores</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_setores }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-building fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Indicadores</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_indicadores }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">OK</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.indicadores_ok }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Alerta</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.indicadores_alerta }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Setores -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Setores Disponíveis</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for setor in setores %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title" style="color: {{ setor.cor }}">
+                            <i class="fas fa-building"></i> {{ setor.nome }}
+                        </h5>
+                        <p class="card-text">{{ setor.descricao or 'Sem descrição' }}</p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                {{ setor.get_indicadores_ativos()|length }} indicadores
+                            </small>
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('dashboard.setor', setor_id=setor.id) }}" 
+                           class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye"></i> Ver Dashboard
+                        </a>
+                        {% if current_user.admin or (current_user.get_setores() and setor in current_user.get_setores()) %}
+                        <a href="{{ url_for('indicadores.por_setor', setor_id=setor.id) }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-chart-line"></i> Indicadores
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
