@@ -53,7 +53,6 @@ class Setor(db.Model):
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     
     # ALTERAR ESTA LINHA
-    indicadores = db.relationship('app.models.Indicador', backref='setor', lazy='dynamic', cascade='all, delete-orphan')
     dashboards = db.relationship('Dashboard', backref='setor', lazy='dynamic')
     usuarios = db.relationship('UsuarioSetor', backref='setor', lazy='dynamic')
     
@@ -67,6 +66,7 @@ class Setor(db.Model):
     
     def __repr__(self):
         return f'<Setor {self.nome}>'
+    indicadores = db.relationship('Indicador', backref='setor', lazy='dynamic', cascade='all, delete-orphan')
 
 class Indicador(db.Model):
     """Modelo para indicadores/KPIs"""
